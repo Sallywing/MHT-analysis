@@ -10,16 +10,19 @@ function response = getMeanResponseTrace(epochList,recordingType,varargin)
     %                   'exc, conductance' or 'inh, conductance' -
     %                           estimated conductance (DF  = 60 mV) 
     % MHT 4/18/16
+    % WQY 8/9/17 add 'thresholdSpikeFactor' as an input parameter
     ip = inputParser;
     ip.addRequired('epochList',@(x)isa(x,'edu.washington.rieke.symphony.generic.GenericEpochList'));
     ip.addRequired('recordingType',@ischar);
     addParameter(ip,'PSTHsigma',5,@isnumeric); %msec
     addParameter(ip,'attachSpikeBinary',false,@islogical); %output field for extracellular only
+    addParameter(ip,'thresholdSpikeFactor',10,@isnumeric); 
     ip.parse(epochList,recordingType,varargin{:});
     epochList = ip.Results.epochList;
     recordingType = ip.Results.recordingType;
     PSTHsigma = ip.Results.PSTHsigma;
     attachSpikeBinary = ip.Results.attachSpikeBinary;
+    thresholdSpikeFactor = ip.Results.thresholdSpikeFactor;
 
     sampleRate = epochList.firstValue.protocolSettings('sampleRate'); %Hz
     baselineTime = epochList.firstValue.protocolSettings('preTime'); %msec
@@ -35,7 +38,7 @@ function response = getMeanResponseTrace(epochList,recordingType,varargin)
     response.timeVector = (1:size(dataMatrix,2))./ sampleRate;
     if strcmp(recordingType, 'extracellular')
         [SpikeTimes, ~, ~] = ...
-                SpikeDetector(dataMatrix);
+                SpikeDetector(dataMatrix, 'thresholdSpikeFactor',thresholdSpikeFactor);
         spikeBinary = zeros(size(dataMatrix));
         if (response.n == 1) %single trial
             spikeBinary(SpikeTimes) = 1;
